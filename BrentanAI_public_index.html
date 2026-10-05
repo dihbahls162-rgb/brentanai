@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brentan.ai</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: #0b1020;
+      color: #f5f7ff;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .app { display: flex; height: 100vh; }
+    .sidebar {
+      width: 270px;
+      background: #11182d;
+      border-right: 1px solid #26304b;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .brand { font-size: 24px; font-weight: 800; }
+    .brand span { color: #7c8cff; }
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 14px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    #newChat {
+      background: #7c8cff;
+      color: white;
+      width: 100%;
+    }
+    #newChat:hover { filter: brightness(1.08); }
+    .side-title {
+      color: #9aa5c3;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-top: 8px;
+    }
+    #history {
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+    .history-item {
+      background: #18213a;
+      color: #dce2f5;
+      text-align: left;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .history-item:hover { background: #222e4d; }
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    header {
+      height: 68px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      border-bottom: 1px solid #26304b;
+      background: #0f162a;
+    }
+    .status { color: #8fe3ad; font-size: 14px; }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 30px max(18px, 7vw);
+    }
+    .welcome { max-width: 800px; margin: 8vh auto 0; text-align: center; }
+    .welcome h1 { font-size: clamp(34px, 6vw, 58px); margin: 0 0 12px; }
+    .welcome p { color: #aab4ce; font-size: 17px; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 25px;
+    }
+    .card {
+      background: #141d34;
+      border: 1px solid #273452;
+      border-radius: 14px;
+      padding: 15px;
+      text-align: left;
+      color: #dfe5f7;
+    }
+    .card:hover { background: #1a2540; }
+    .message {
+      max-width: 850px;
+      margin: 0 auto 20px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .avatar {
+      flex: 0 0 36px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #263252;
+      font-weight: 800;
+    }
+    .user .avatar { background: #7c8cff; }
+    .bubble {
+      line-height: 1.6;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      flex: 1;
+    }
+    .bubble code {
+      display: block;
+      white-space: pre;
+      overflow-x: auto;
+      background: #070b16;
+      border: 1px solid #26304b;
+      border-radius: 10px;
+      padding: 12px;
+      margin: 10px 0;
+      font-family: Consolas, monospace;
+    }
+    .composer {
+      padding: 14px max(18px, 7vw) 20px;
+      background: #0f162a;
+      border-top: 1px solid #26304b;
+    }
+    form {
+      max-width: 850px;
+      margin: auto;
+      display: flex;
+      gap: 10px;
+    }
+    #input {
+      flex: 1;
+      resize: none;
+      min-height: 52px;
+      max-height: 160px;
+      padding: 15px;
+      border-radius: 14px;
+      border: 1px solid #34405f;
+      background: #141d34;
+      color: white;
+      outline: none;
+      font: inherit;
+    }
+    #input:focus { border-color: #7c8cff; }
+    #send {
+      background: #7c8cff;
+      color: white;
+      min-width: 80px;
+    }
+    #send:disabled { opacity: .5; cursor: not-allowed; }
+    .typing { color: #9aa5c3; font-style: italic; }
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      #messages { padding: 20px 14px; }
+      .composer { padding: 10px 12px 14px; }
+      .cards { grid-template-columns: 1fr; }
+      header { padding: 0 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Brentan<span>.ai</span></div>
+      <button id="newChat">+ New Chat</button>
+      <div class="side-title">Recent chats</div>
+      <div id="history"></div>
+    </aside>
+
+    <main class="main">
+      <header>
+        <strong>Brentan.ai</strong>
+        <span class="status">● Online</span>
+      </header>
+
+      <section id="messages">
+        <div class="welcome" id="welcome">
+          <h1>What can I help with?</h1>
+          <p>Ask Brentan.ai a question, get help with code, or explore an idea.</p>
+          <div class="cards">
+            <button class="card" data-prompt="Explain how black holes work in simple terms.">Explain something</button>
+            <button class="card" data-prompt="Build me a simple HTML game.">Build a game</button>
+            <button class="card" data-prompt="Help me debug this JavaScript code.">Debug code</button>
+            <button class="card" data-prompt="Give me three creative website ideas.">Brainstorm ideas</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="composer">
+        <form id="form">
+          <textarea id="input" placeholder="Message Brentan.ai..." autocomplete="off"></textarea>
+          <button id="send" type="submit">Send</button>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById("form");
+    const input = document.getElementById("input");
+    const send = document.getElementById("send");
+    const messagesEl = document.getElementById("messages");
+    const welcome = document.getElementById("welcome");
+    const historyEl = document.getElementById("history");
+    const newChat = document.getElementById("newChat");
+
+    let messages = [];
+    let chats = JSON.parse(localStorage.getItem("brentanChats") || "[]");
+
+    function saveChats() {
+      localStorage.setItem("brentanChats", JSON.stringify(chats.slice(-20)));
+    }
+
+    function renderHistory() {
+      historyEl.innerHTML = "";
+      chats.slice().reverse().forEach((chat, index) => {
+        const btn = document.createElement("button");
+        btn.className = "history-item";
+        btn.textContent = chat.title || "New chat";
+        btn.onclick = () => {
+          messages = chat.messages || [];
+          renderMessages();
+        };
+        historyEl.appendChild(btn);
+      });
+    }
+
+    function renderMessages() {
+      messagesEl.innerHTML = "";
+      if (!messages.length) {
+        messagesEl.appendChild(welcome);
+        welcome.style.display = "block";
+        return;
+      }
+      welcome.style.display = "none";
+      messages.forEach(m => addMessage(m.role, m.content));
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function formatText(text) {
+      return text.replace(/```([\s\S]*?)```/g, (_, code) => {
+        return "<code>" + escapeHtml(code.trim()) + "</code>";
+      }).replace(/\n/g, "<br>");
+    }
+
+    function escapeHtml(text) {
+      return text
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function addMessage(role, content) {
+      const row = document.createElement("div");
+      row.className = "message " + role;
+      const avatar = document.createElement("div");
+      avatar.className = "avatar";
+      avatar.textContent = role === "user" ? "You" : "B";
+      const bubble = document.createElement("div");
+      bubble.className = "bubble";
+      bubble.innerHTML = formatText(content);
+      row.appendChild(avatar);
+      row.appendChild(bubble);
+      messagesEl.appendChild(row);
+    }
+
+    function addTyping() {
+      const row = document.createElement("div");
+      row.className = "message";
+      row.id = "typing";
+      row.innerHTML = '<div class="avatar">B</div><div class="bubble typing">Brentan.ai is thinking...</div>';
+      messagesEl.appendChild(row);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage(text) {
+      text = text.trim();
+      if (!text || send.disabled) return;
+
+      welcome.style.display = "none";
+      messages.push({ role: "user", content: text });
+      addMessage("user", text);
+      input.value = "";
+      send.disabled = true;
+      addTyping();
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messages })
+        });
+
+        const data = await response.json();
+        document.getElementById("typing")?.remove();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Request failed.");
+        }
+
+        messages.push({ role: "assistant", content: data.answer });
+        addMessage("assistant", data.answer);
+
+        chats.push({
+          title: text.slice(0, 45),
+          messages: [...messages]
+        });
+        saveChats();
+        renderHistory();
+      } catch (error) {
+        document.getElementById("typing")?.remove();
+        addMessage("assistant", "Sorry, I couldn't connect to Brentan.ai. Check that the server is running and your API key/model are configured correctly.");
+        console.error(error);
+      } finally {
+        send.disabled = false;
+        input.focus();
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      }
+    }
+
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      sendMessage(input.value);
+    });
+
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    document.querySelectorAll(".card").forEach(card => {
+      card.addEventListener("click", () => sendMessage(card.dataset.prompt));
+    });
+
+    newChat.addEventListener("click", () => {
+      messages = [];
+      renderMessages();
+      input.focus();
+    });
+
+    renderHistory();
+    renderMessages();
+  </script>
+</body>
+</html>
